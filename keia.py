@@ -1,4 +1,4 @@
-import streamlit as st
+]import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -344,7 +344,7 @@ def get_ai_insight(prompt, model_name):
         st.error(f"Error saat memanggil model {model_name}: {e}. Coba lagi atau pilih model lain.")
         return "Gagal membuat wawasan: Terjadi masalah koneksi atau API."
 
-def generate_html_report(campaign_summary, chart_insights, chart_figures_dict, charts_to_display_info):
+def generate_html_report(campaign_summary, chart_insights, chart_figures_dict, charts_to_display_info, selected_ai_model):
     """
     Membuat laporan HTML dari wawasan dan grafik yang dihasilkan AI.
     """
@@ -358,13 +358,14 @@ def generate_html_report(campaign_summary, chart_insights, chart_figures_dict, c
             fig = chart_figures_dict.get(chart_key)
             
             insights_for_chart = chart_insights.get(chart_key, {})
+            insight_text_for_model = insights_for_chart.get(selected_ai_model, "Wawasan belum dihasilkan atau data tidak tersedia.")
+            
             insights_html = ""
-            for style, text in insights_for_chart.items():
-                if text:
-                    insights_html += f"""
-                    <h4>Wawasan AI (Gaya: {style}):</h4>
-                    <div class="insight-box">{text}</div>
-                    """
+            if insight_text_for_model:
+                insights_html += f"""
+                <h4>Wawasan AI (Gaya: {selected_ai_model.replace('_', ' ').title()}):</h4>
+                <div class="insight-box">{insight_text_for_model}</div>
+                """
 
             if fig:
                 try:
@@ -471,7 +472,7 @@ st.markdown("<div class='main-header'><h1>Media Intelligence Dashboard</h1><p>Ro
 if 'data' not in st.session_state:
     st.session_state.data = None
 if 'chart_insights' not in st.session_state:
-    st.session_state.chart_insights = {}
+    st.session_state.chart_insights = {} # Store insights per chart, per model
 if 'campaign_summary' not in st.session_state:
     st.session_state.campaign_summary = None
 if 'chart_figures' not in st.session_state:
@@ -662,16 +663,71 @@ if st.session_state.show_analysis and st.session_state.data is not None:
             persona = personas.get(answer_style, "Anda adalah asisten AI. Berikan 3 wawasan dari data berikut.")
 
             return f"{persona} Analisis data mengenai {prompts.get(key, 'data')}: {data_json}. Sajikan wawasan dalam format daftar bernomor yang jelas."
+        
+        # Pilihan model AI menggunakan radio button di sini agar bisa memicu wawasan per grafik
+        st.markdown("---") # Garis pemisah sebelum pilihan AI
+        st.subheader("🤖 Pengaturan AI Generatif")
+        st.session_state.selected_ai_model = st.radio(
+            "Pilih **Model AI** untuk Wawasan",
+            ["gemini-2.0-flash", "Mistral 7B Instruct", "llama-3.3-8b-instruct"],
+            index=["gemini-2.0-flash", "Mistral 7B Instruct", "llama-3.3-8b-instruct"].index(st.session_state.selected_ai_model) if st.session_state.selected_ai_model in ["gemini-2.0-flash", "Mistral 7B Instruct", "llama-3.3-8b-instruct"] else 0,
+            help="Pilih model AI yang akan digunakan untuk menghasilkan wawasan.",
+            key="ai_model_selector_main" # Memberikan key unik
+        )
 
+        # Tombol untuk menghasilkan wawasan
+        if st.button("Hasilkan Wawasan AI", type="primary", use_container_width=True, key="generate_ai_insights_btn"):
+            if api_configured:
+                with st.spinner("Menghasilkan wawasan AI..."):
+                    # 1. Ringkasan Kampanye Global
+                    summary_prompt = (
+                        f"Anda adalah seorang analis media yang cerdas. Berikan ringkasan strategi kampanye berdasarkan data berikut. Fokus pada tren keseluruhan, sentimen dominan, platform paling berpengaruh, dan rekomendasi strategis kunci (maksimal 5 poin, gunakan bahasa yang mudah dimengerti). "
+                        f"Data: {filtered_df.head(20).to_json(orient='records')}" # Mengambil sebagian kecil data untuk ringkasan global
+                    )
+                    st.session_state.campaign_summary = get_ai_insight(summary_prompt, st.session_state.selected_ai_model)
+
+                    # 2. Wawasan per Grafik
+                    for chart_info in charts_to_display_info:
+                        chart_key = chart_info["key"]
+                        
+                        # Pastikan data_for_prompt sudah ada dan tidak kosong
+                        if chart_key not in st.session_state.chart_insights or "data_for_prompt" not in st.session_state.chart_insights[chart_key]:
+                            st.session_state.chart_insights.setdefault(chart_key, {})[st.session_state.selected_ai_model] = "Data grafik tidak tersedia untuk analisis AI."
+                            continue
+
+                        data_json = st.session_state.chart_insights[chart_key]["data_for_prompt"]
+                        
+                        if data_json and data_json != '[]': # Pastikan ada data untuk dianalisis
+                            prompt = get_chart_prompt(chart_key, data_json, st.session_state.selected_ai_model)
+                            insight = get_ai_insight(prompt, st.session_state.selected_ai_model)
+                            st.session_state.chart_insights.setdefault(chart_key, {})[st.session_state.selected_ai_model] = insight
+                        else:
+                            st.session_state.chart_insights.setdefault(chart_key, {})[st.session_state.selected_ai_model] = "Tidak cukup data untuk menghasilkan wawasan ini."
+                st.success("Wawasan AI berhasil dihasilkan!")
+            else:
+                st.error("Tidak dapat menghasilkan wawasan AI karena API key belum dikonfigurasi.")
+        
+        # Tampilkan Ringkasan Kampanye
+        if st.session_state.campaign_summary:
+            st.markdown("<div class='insight-hub-item'><h4>🎯 Ringkasan Strategi Kampanye</h4></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='insight-box'>{st.session_state.campaign_summary}</div>", unsafe_allow_html=True)
+        else:
+            st.info("Klik 'Hasilkan Wawasan AI' untuk mendapatkan ringkasan kampanye.")
+
+        # Iterasi untuk menampilkan setiap grafik dan wawasannya
         for i, chart in enumerate(charts_to_display_info):
             with chart_cols[(i) % 2]: # distribusi ke dua kolom
-                with st.container(border=True):
+                with st.container(border=True): # Gunakan container untuk setiap grafik dan wawasannya
                     st.markdown(f'<h3>📊 {chart["title"]}</h3>', unsafe_allow_html=True)
                     fig, data_for_prompt = None, None
                     try:
-                        if filtered_df.empty: # Tambahkan pengecekan jika filtered_df kosong
+                        if filtered_df.empty:
                             st.warning(f"Tidak ada data untuk ditampilkan pada grafik '{chart['title']}' dengan filter ini.")
-                            continue # Lanjutkan ke grafik berikutnya
+                            st.session_state.chart_insights.setdefault(chart["key"], {})["data_for_prompt"] = None # Reset data_for_prompt
+                            st.session_state.chart_figures[chart["key"]] = None
+                            # Pastikan wawasan tetap kosong jika tidak ada data
+                            st.markdown(f"<div class='insight-box'>Tidak ada data untuk grafik ini, tidak dapat menghasilkan wawasan.</div>", unsafe_allow_html=True)
+                            continue
 
                         if chart["key"] == "sentiment":
                             data = filtered_df['Sentiment'].value_counts().reset_index()
@@ -703,15 +759,25 @@ if st.session_state.show_analysis and st.session_state.data is not None:
                             fig.update_layout(height=400, margin=dict(t=50, b=0, l=0, r=0))
                             st.plotly_chart(fig, use_container_width=True)
                             st.session_state.chart_figures[chart["key"]] = fig
-                        
-                        # Simpan data untuk prompt AI
-                        st.session_state.chart_insights[chart["key"]] = {
-                            "data_for_prompt": data_for_prompt
-                        }
+                            
+                            # Simpan data untuk prompt AI, ini penting!
+                            st.session_state.chart_insights.setdefault(chart["key"], {})["data_for_prompt"] = data_for_prompt
+                        else:
+                            st.session_state.chart_insights.setdefault(chart["key"], {})["data_for_prompt"] = None # Pastikan ini di-reset jika tidak ada grafik
+                            st.session_state.chart_figures[chart["key"]] = None
+                            st.warning(f"Tidak dapat membuat grafik {chart['title']}.")
+
+                        # Tampilkan wawasan AI tepat di bawah grafik ini
+                        insight_text = st.session_state.chart_insights.get(chart["key"], {}).get(st.session_state.selected_ai_model, "Klik 'Hasilkan Wawasan AI' untuk analisis.")
+                        st.markdown(f"<h4>Wawasan AI untuk {chart['title']}</h4>", unsafe_allow_html=True)
+                        st.markdown(f"<div class='insight-box'>{insight_text}</div>", unsafe_allow_html=True)
 
                     except Exception as e:
-                        st.error(f"Gagal membuat grafik {chart['title']}: {e}")
+                        st.error(f"Gagal membuat grafik {chart['title']} atau wawasan: {e}")
                         st.session_state.chart_figures[chart["key"]] = None
+                        st.session_state.chart_insights.setdefault(chart["key"], {})["data_for_prompt"] = None
+                        st.markdown(f"<div class='insight-box'>Terjadi kesalahan saat memuat grafik atau wawasan ini.</div>", unsafe_allow_html=True)
+
 
         st.markdown("---")
 
@@ -719,8 +785,6 @@ if st.session_state.show_analysis and st.session_state.data is not None:
         st.header("Deteksi Anomali")
         st.write("Identifikasi titik data yang tidak biasa atau tren yang signifikan.")
 
-        # Anda bisa menambahkan logika deteksi anomali di sini
-        # Contoh sederhana: deteksi anomali berdasarkan Z-score pada 'Engagements'
         if not filtered_df.empty:
             mean_engagements = filtered_df['Engagements'].mean()
             std_engagements = filtered_df['Engagements'].std()
@@ -747,81 +811,14 @@ if st.session_state.show_analysis and st.session_state.data is not None:
         
         st.markdown("<hr>", unsafe_allow_html=True)
 
-        ## Insight Hub (Analisis AI Lanjut)
-        st.header("Pusat Wawasan AI")
-        st.write("Dapatkan ringkasan kampanye dan wawasan spesifik dari setiap grafik yang dihasilkan oleh AI.")
-
-        # Pilihan model AI menggunakan radio button
-        st.session_state.selected_ai_model = st.radio(
-            "Pilih **Model AI** untuk Wawasan",
-            ["gemini-2.0-flash", "Mistral 7B Instruct", "llama-3.3-8b-instruct"],
-            index=["gemini-2.0-flash", "Mistral 7B Instruct", "llama-3.3-8b-instruct"].index(st.session_state.selected_ai_model) if st.session_state.selected_ai_model in ["gemini-2.0-flash", "Mistral 7B Instruct", "llama-3.3-8b-instruct"] else 0,
-            help="Pilih model AI yang akan digunakan untuk menghasilkan wawasan."
-        )
-
-        # Tombol untuk menghasilkan wawasan
-        if st.button("Hasilkan Wawasan AI", type="primary", use_container_width=True, key="generate_ai_insights_btn"):
-            if api_configured:
-                with st.spinner("Menghasilkan wawasan AI..."):
-                    # 1. Ringkasan Kampanye Global
-                    summary_prompt = (
-                        f"Anda adalah seorang analis media yang cerdas. Berikan ringkasan strategi kampanye berdasarkan data berikut. Fokus pada tren keseluruhan, sentimen dominan, platform paling berpengaruh, dan rekomendasi strategis kunci (maksimal 5 poin, gunakan bahasa yang mudah dimengerti). "
-                        f"Data: {filtered_df.head(20).to_json(orient='records')}" # Mengambil sebagian kecil data untuk ringkasan global
-                    )
-                    st.session_state.campaign_summary = get_ai_insight(summary_prompt, st.session_state.selected_ai_model)
-
-                    # 2. Wawasan per Grafik
-                    new_chart_insights = {}
-                    for chart_info in charts_to_display_info:
-                        chart_key = chart_info["key"]
-                        if chart_key in st.session_state.chart_insights and "data_for_prompt" in st.session_state.chart_insights[chart_key]:
-                            data_json = st.session_state.chart_insights[chart_key]["data_for_prompt"]
-                            if data_json and data_json != '[]': # Pastikan ada data untuk dianalisis
-                                prompt = get_chart_prompt(chart_key, data_json, st.session_state.selected_ai_model)
-                                insight = get_ai_insight(prompt, st.session_state.selected_ai_model)
-                                new_chart_insights[chart_key] = {st.session_state.selected_ai_model: insight}
-                            else:
-                                new_chart_insights[chart_key] = {st.session_state.selected_ai_model: "Tidak cukup data untuk menghasilkan wawasan ini."}
-                        else:
-                            new_chart_insights[chart_key] = {st.session_state.selected_ai_model: "Data grafik tidak tersedia untuk analisis AI."}
-                    st.session_state.chart_insights = new_chart_insights # Update seluruh dictionary insights
-                st.success("Wawasan AI berhasil dihasilkan!")
-            else:
-                st.error("Tidak dapat menghasilkan wawasan AI karena API key belum dikonfigurasi.")
-
-        # Tampilkan Ringkasan Kampanye
-        if st.session_state.campaign_summary:
-            st.markdown("<div class='insight-hub-item'><h4>🎯 Ringkasan Strategi Kampanye</h4></div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='insight-box'>{st.session_state.campaign_summary}</div>", unsafe_allow_html=True)
-        else:
-            st.info("Klik 'Hasilkan Wawasan AI' untuk mendapatkan ringkasan kampanye.")
-
-        # Tampilkan Wawasan per Grafik
-        st.markdown("<h3>💡 Wawasan per Grafik</h3>", unsafe_allow_html=True)
-        # Menggunakan kolom untuk tampilan wawasan grafik yang lebih baik
-        insight_cols = st.columns(2)
-        col_idx = 0
-        for chart_info in charts_to_display_info:
-            chart_key = chart_info["key"]
-            chart_title = chart_info["title"]
-            insight_data = st.session_state.chart_insights.get(chart_key, {})
-            insight_text = insight_data.get(st.session_state.selected_ai_model, "Wawasan belum dihasilkan atau data tidak tersedia.")
-
-            with insight_cols[col_idx % 2]:
-                with st.container(border=True):
-                    st.markdown(f"<h4>{chart_title}</h4>", unsafe_allow_html=True)
-                    st.markdown(f"<div class='insight-box'>{insight_text}</div>", unsafe_allow_html=True)
-            col_idx += 1
-
-        st.markdown("---")
-
         # Tombol Download Laporan
         if st.session_state.campaign_summary or any(st.session_state.chart_insights.values()):
             html_report = generate_html_report(
                 st.session_state.campaign_summary, 
                 st.session_state.chart_insights, 
                 st.session_state.chart_figures,
-                charts_to_display_info # Teruskan info chart untuk judul di laporan
+                charts_to_display_info, # Teruskan info chart untuk judul di laporan
+                st.session_state.selected_ai_model # Teruskan model yang dipilih untuk laporan
             )
             st.download_button(
                 label="Unduh Laporan HTML",
