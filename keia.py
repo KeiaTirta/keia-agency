@@ -431,7 +431,7 @@ def parse_csv(uploaded_file):
 load_css() # Memuat CSS kustom
 api_configured = configure_gemini_api() # Mengkonfigurasi API Gemini
 
-st.markdown("<div class='main-header'><h1>Media Intelligence Dashboard</h1><p>Rooby Farhan Intelligence</p></div>", unsafe_allow_html=True)
+st.markdown("<div class='main-header'><h1>Media Intelligence Dashboard</h1><p> Keia Tirta Management</p></div>", unsafe_allow_html=True)
 
 # Inisialisasi State (PASTIKAN BAGIAN INI ADA DI ATAS SEBELUM KODE UI LAINNYA)
 if 'data' not in st.session_state:
@@ -459,7 +459,7 @@ if st.session_state.data is None:
     c1, c2, c3 = st.columns([1,2,1]) 
     with c2:
         with st.container(border=False):
-            st.markdown("### ☁️ Unggah File CSV Kamu di sini!")
+            st.markdown("### ☁📂 Unggah File CSV!")
             st.markdown("Pastikan file memiliki kolom: **`Date`**, **`Engagements`**, **`Sentiment`**, **`Platform`**, **`Media Type`**, **`Location`**, dan **`Headline`**.")
             uploaded_file = st.file_uploader(" ", type="csv", label_visibility="collapsed") # Label visibility "collapsed" agar tidak ada label redundan
             
@@ -688,7 +688,7 @@ if st.session_state.show_analysis and st.session_state.data is not None:
                             key=f"sel_{chart['key']}"
                         )
 
-                        if st.button("Lihat Insight", key=f"btn_{chart['key']}", use_container_width=True, type="primary"):
+                        if st.button("insight ⚡", key=f"btn_{chart['key']}", use_container_width=True, type="primary"):
                             if data_for_prompt and api_configured:
                                 with st.spinner(f"Menganalisis {chart['title']} dengan gaya '{selected_style}'..."):
                                     prompt = get_chart_prompt(chart['key'], data_for_prompt, selected_style)
@@ -700,7 +700,7 @@ if st.session_state.show_analysis and st.session_state.data is not None:
                             else:
                                 st.warning("Tidak ada data valid untuk membuat insight AI.")
 
-                        insight_text = st.session_state.chart_insights.get(chart.get("key"), {}).get(selected_style, "Pilih model AI untuk melihat insight.")
+                        insight_text = st.session_state.chart_insights.get(chart.get("key"), {}).get(selected_style, "Pilih model AI untuk meinsight ⚡.")
                         st.markdown(f'<div class="insight-box">{insight_text}</div>', unsafe_allow_html=True)
 
                     except Exception as e:
@@ -715,7 +715,7 @@ if st.session_state.show_analysis and st.session_state.data is not None:
     st.header("Ringkasan Strategi & Rekomendasi AI")
     st.write("Dapatkan rangkuman eksekutif dan rekomendasi strategis berbasis AI untuk kampanye media Anda.")
     with st.container(border=True):
-        if st.button("Buat Ringkasan Strategi", use_container_width=True, type="primary", key="btn_summary"):
+        if st.button("Ringkasan", use_container_width=True, type="primary", key="btn_summary"):
             if not filtered_df.empty and api_configured:
                 with st.spinner("Membuat ringkasan..."):
                     st.session_state.campaign_summary = get_ai_insight(f"Data: {filtered_df.describe().to_json()}. Buat ringkasan eksekutif yang menarik dan berikan 3 rekomendasi strategis yang bisa ditindaklanjuti berdasarkan data ini.")
@@ -723,7 +723,7 @@ if st.session_state.show_analysis and st.session_state.data is not None:
                 st.error("API Gemini tidak terkonfigurasi. Tidak dapat membuat ringkasan AI.")
             else:
                 st.warning("Tidak ada data valid untuk membuat ringkasan AI.")
-        st.markdown(f'<div class="insight-box">{st.session_state.campaign_summary or "Klik \'Buat Ringkasan Strategi\' untuk mendapatkan wawasan berbasis AI."}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="insight-box">{st.session_state.campaign_summary or "Klik \'Ringkasan\' untuk mendapatkan wawasan berbasis AI."}</div>', unsafe_allow_html=True)
 
     st.markdown("<hr style='margin-top: 3rem;'>", unsafe_allow_html=True)
 
@@ -732,7 +732,7 @@ if st.session_state.show_analysis and st.session_state.data is not None:
     st.write("Unduh laporan lengkap yang berisi grafik dan wawasan AI untuk dokumentasi atau presentasi Anda.")
     with st.container(border=True):
         if st.download_button(
-            "Unduh Laporan Lengkap (HTML)",
+            "Unduh",
             data=generate_html_report(st.session_state.campaign_summary, st.session_state.chart_insights, st.session_state.chart_figures, charts_to_display),
             file_name="Laporan_Media_Intelligence.html",
             mime="text/html",
