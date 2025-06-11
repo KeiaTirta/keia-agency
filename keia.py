@@ -315,7 +315,7 @@ def configure_gemini_api():
     # Ganti dengan st.secrets["GEMINI_API_KEY"] di produksi
     # Untuk contoh ini, saya akan menggunakan placeholder API Key yang tidak valid
     # Anda HARUS menggantinya dengan API Key Gemini Anda yang sebenarnya dari Google AI Studio
-    api_key = st.secrets.get("GEMINI_API_KEY") # Menggunakan st.secrets lebih aman
+    api_key = st.secrets.get("AIzaSyC0VUu6xTFIwH3aP2R7tbhyu4O8m1ICxn4") # Menggunakan st.secrets lebih aman
 
     if not api_key:
         st.warning("API Key Gemini tidak ditemukan. Beberapa fitur AI mungkin tidak berfungsi. Silakan atur di Streamlit Secrets.")
