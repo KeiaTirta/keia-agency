@@ -1,8 +1,8 @@
-# Tampilan Dasbor Utama dengan Layout Baru
+# Tampilan Dasbor Utama dengan Layout Baru yang Lebih Keren
 if st.session_state.show_analysis and st.session_state.data is not None:
     df = st.session_state.data
 
-    # --- Header Utama yang Lebih Luas ---
+    # --- Header Utama yang Lebih Luas (Sudah Ada, tetap pertahankan) ---
     st.markdown("<div class='main-header' style='padding: 2rem 3rem; margin-bottom: 2rem;'><h1>Media Intelligence Dashboard</h1><p style='font-size: 1.2rem; color: #6c757d;'>Analisis Mendalam Data Media Anda</p></div>", unsafe_allow_html=True)
 
     # --- Sidebar Filter ---
@@ -10,8 +10,11 @@ if st.session_state.show_analysis and st.session_state.data is not None:
         st.markdown(f"""<div class="uploaded-file-info"><h3>📂 File Terunggah:</h3><p><strong>Nama:</strong> {st.session_state.last_uploaded_file_name}</p></div>""", unsafe_allow_html=True)
         if st.button("Unggah File Baru", key="clear_file_btn", use_container_width=True, type="secondary"):
             for key in list(st.session_state.keys()):
-                if key not in ['api_key']: # Keep API key if it exists
-                    del st.session_state.get(key)
+                # Hati-hati jangan menghapus API key jika disimpan di session_state
+                if key not in ['api_key', 'GEMINI_API_KEY']: # Asumsi API key Anda mungkin disimpan sebagai 'api_key' atau 'GEMINI_API_KEY'
+                    # Perbaikan di sini: gunakan 'del st.session_state[key]' atau 'st.session_state.pop(key)'
+                    # Lebih aman menggunakan .pop() karena tidak akan error jika key tidak ada
+                    st.session_state.pop(key, None) # Hapus key jika ada, tanpa menimbulkan error jika tidak ada
             st.experimental_set_query_params()
             st.rerun()
 
@@ -19,22 +22,50 @@ if st.session_state.show_analysis and st.session_state.data is not None:
         with st.expander("⚙️ Filter Data", expanded=True):
             def get_multiselect(label, options):
                 all_option = f"Pilih Semua {label}"
-                selection = st.multiselect(label, [all_option] + options, default=st.session_state.get(f'filter_{label}', [all_option]))
+                # Set default value from session_state if exists, otherwise to "Pilih Semua"
+                default_selection = st.session_state.get(f'filter_{label}', [all_option])
+                
+                # Filter out options that might not exist in the current data due to other filters
+                # This prevents Streamlit internal error if an option from default_selection is not in options
+                valid_options = [opt for opt in default_selection if opt in ([all_option] + options)]
+                
+                selection = st.multiselect(label, [all_option] + options, default=valid_options)
+                
                 if all_option in selection:
-                    st.session_state.pop(f'filter_{label}', None) # Remove from state if "All" is selected
+                    if f'filter_{label}' in st.session_state:
+                        del st.session_state[f'filter_{label}'] # Remove from state if "All" is selected
                     return options
-                st.session_state.setdefault(f'filter_{label}', selection) # Save filter state
+                st.session_state[f'filter_{label}'] = selection # Save filter state
                 return selection
 
             min_date, max_date = df['Date'].min().date(), df['Date'].max().date()
+            
+            # Check if date_range is already in session_state, initialize if not
+            if 'filter_date_range' not in st.session_state:
+                st.session_state.filter_date_range = (min_date, max_date)
+
+            # Use st.session_state.filter_date_range as default value for date_input
+            date_range = st.date_input("Rentang Tanggal", 
+                                      value=st.session_state.filter_date_range, 
+                                      min_value=min_date, 
+                                      max_value=max_date, 
+                                      format="DD/MM/YYYY")
+            
+            # Update session state for date range
+            if len(date_range) == 2:
+                start_date, end_date = date_range
+                st.session_state.filter_date_range = (start_date, end_date)
+            else: # If only one date is selected, assume it's the start date
+                start_date = date_range[0]
+                end_date = max_date # Default end date to max if only start is picked
+                st.session_state.filter_date_range = (start_date, end_date)
+
 
             platform = get_multiselect("Platform", sorted(df['Platform'].unique()))
             media_type = get_multiselect("Media Type", sorted(df['Media Type'].unique()))
             sentiment = get_multiselect("Sentiment", sorted(df['Sentiment'].unique()))
             location = get_multiselect("Location", sorted(df['Location'].unique()))
-            date_range = st.date_input("Rentang Tanggal", (min_date, max_date), min_date, max_date, format="DD/MM/YYYY")
-            start_date, end_date = date_range if len(date_range) == 2 else (min_date, max_date)
-
+            
     # Filter dan proses data
     query = "(Date >= @start_date) & (Date <= @end_date)"
     params = {'start_date': pd.to_datetime(start_date), 'end_date': pd.to_datetime(end_date)}
@@ -45,29 +76,43 @@ if st.session_state.show_analysis and st.session_state.data is not None:
 
     try:
         filtered_df = df.query(query, local_dict=params)
+        if filtered_df.empty:
+            st.warning("Tidak ada data yang cocok dengan filter yang dipilih. Silakan sesuaikan filter Anda.")
     except Exception as e:
         st.error(f"Error saat memfilter data: {e}. Pastikan pilihan filter valid.")
-        filtered_df = df
+        filtered_df = pd.DataFrame() # Set to empty DataFrame on filter error
 
     st.markdown("<hr>", unsafe_allow_html=True)
 
-    # --- Bagian Statistik Utama (Contoh - bisa Anda kembangkan sesuai kebutuhan) ---
+    # --- Bagian Statistik Utama (Top Cards) ---
     if not filtered_df.empty:
         total_engagements = filtered_df['Engagements'].sum()
         positive_sentiment_count = filtered_df['Sentiment'].value_counts().get('Positive', 0)
         negative_sentiment_count = filtered_df['Sentiment'].value_counts().get('Negative', 0)
+        neutral_sentiment_count = filtered_df['Sentiment'].value_counts().get('Neutral', 0)
+        total_unique_platforms = filtered_df['Platform'].nunique()
 
-        cols_stats = st.columns(3)
-        with cols_stats:
-            st.markdown(f"<div class='chart-container' style='padding: 1.5rem;'><h3>Total Keterlibatan</h3><p style='font-size: 1.5rem; font-weight: bold;'>{total_engagements:,}</p></div>", unsafe_allow_html=True)
-        with cols_stats:
-            st.markdown(f"<div class='chart-container' style='padding: 1.5rem;'><h3>Sentimen Positif</h3><p style='font-size: 1.5rem; font-weight: bold;'>{positive_sentiment_count}</p></div>", unsafe_allow_html=True)
-        with cols_stats:
-            st.markdown(f"<div class='chart-container' style='padding: 1.5rem;'><h3>Sentimen Negatif</h3><p style='font-size: 1.5rem; font-weight: bold;'>{negative_sentiment_count}</p></div>", unsafe_allow_html=True)
+        # Tambahkan lebih banyak statistik jika relevan
+        avg_engagements_per_post = filtered_df['Engagements'].mean() if not filtered_df.empty else 0
+        
+        # Menggunakan 4 kolom untuk tampilan yang lebih padat dan informatif
+        cols_stats = st.columns(4) 
+        
+        with cols_stats[0]:
+            st.markdown(f"<div class='chart-container' style='padding: 1.5rem; text-align: center;'><h3>Total Keterlibatan</h3><p style='font-size: 2rem; font-weight: bold; color: #6366f1;'>{total_engagements:,}</p></div>", unsafe_allow_html=True)
+        with cols_stats[1]:
+            st.markdown(f"<div class='chart-container' style='padding: 1.5rem; text-align: center;'><h3>Sentimen Positif</h3><p style='font-size: 2rem; font-weight: bold; color: #28a745;'>{positive_sentiment_count}</p></div>", unsafe_allow_html=True)
+        with cols_stats[2]:
+            st.markdown(f"<div class='chart-container' style='padding: 1.5rem; text-align: center;'><h3>Sentimen Negatif</h3><p style='font-size: 2rem; font-weight: bold; color: #dc3545;'>{negative_sentiment_count}</p></div>", unsafe_allow_html=True)
+        with cols_stats[3]:
+            st.markdown(f"<div class='chart-container' style='padding: 1.5rem; text-align: center;'><h3>Platform Unik</h3><p style='font-size: 2rem; font-weight: bold; color: #ffc107;'>{total_unique_platforms}</p></div>", unsafe_allow_html=True)
 
         st.markdown("<hr>", unsafe_allow_html=True)
 
         # --- Tampilan Grafik dalam Grid ---
+        st.header("Visualisasi Data Utama")
+        st.write("Jelajahi berbagai metrik penting dari data media Anda melalui grafik interaktif.")
+        
         charts_to_display = [
             {"key": "sentiment", "title": "Analisis Sentimen"},
             {"key": "platform", "title": "Keterlibatan per Platform"},
@@ -99,7 +144,7 @@ if st.session_state.show_analysis and st.session_state.data is not None:
             return f"{persona} Analisis data mengenai {prompts.get(key, 'data')}: {data_json}. Sajikan wawasan dalam format daftar bernomor yang jelas."
 
         for i, chart in enumerate(charts_to_display):
-            with chart_cols[(i) % 2]: # распределение по двум колонкам
+            with chart_cols[(i) % 2]: # distribusi по двум колонкам
                 with st.container(border=True):
                     st.markdown(f'<h3>📊 {chart["title"]}</h3>', unsafe_allow_html=True)
                     fig, data_for_prompt = None, None
@@ -167,13 +212,14 @@ if st.session_state.show_analysis and st.session_state.data is not None:
                         st.error(f"Terjadi kesalahan saat membuat atau menampilkan grafik '{chart['title']}': {e}")
 
     else:
-        st.info("Tidak ada data yang sesuai dengan filter yang Anda terapkan.")
+        st.info("Tidak ada data yang sesuai dengan filter yang Anda terapkan. Silakan ubah filter atau unggah file baru.")
 
     st.markdown("<hr style='margin-top: 3rem;'>", unsafe_allow_html=True)
 
     # --- Bagian Ringkasan Strategi ---
+    st.header("Ringkasan Strategi & Rekomendasi AI")
+    st.write("Dapatkan rangkuman eksekutif dan rekomendasi strategis berbasis AI untuk kampanye media Anda.")
     with st.container(border=True):
-        st.markdown("<h3>💡 Ringkasan Strategi & Rekomendasi</h3>", unsafe_allow_html=True)
         if st.button("Buat Ringkasan Strategi", use_container_width=True, type="primary", key="btn_summary"):
             if not filtered_df.empty and api_configured:
                 with st.spinner("Membuat ringkasan..."):
@@ -187,8 +233,9 @@ if st.session_state.show_analysis and st.session_state.data is not None:
     st.markdown("<hr style='margin-top: 3rem;'>", unsafe_allow_html=True)
 
     # --- Tombol Download Laporan ---
+    st.header("Unduh Laporan Analisis")
+    st.write("Unduh laporan lengkap yang berisi grafik dan wawasan AI untuk dokumentasi atau presentasi Anda.")
     with st.container(border=True):
-        st.markdown("<h3>📄 Unduh Laporan Analisis</h3>", unsafe_allow_html=True)
         if st.download_button(
             "Unduh Laporan Lengkap (HTML)",
             data=generate_html_report(st.session_state.campaign_summary, st.session_state.chart_insights, st.session_state.chart_figures, charts_to_display),
