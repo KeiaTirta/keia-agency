@@ -178,6 +178,43 @@ def load_css():
                 background-color: #f0f4ff !important; /* Light blue hover */
             }
 
+            /* Radio button styles - Modern and clean */
+            div[data-testid="stRadio"] > label {
+                color: #4c51bf; /* Darker blue */
+                font-weight: 500;
+                margin-bottom: 0.75rem; /* Space below label */
+            }
+            div[data-testid="stRadio"] div[role="radiogroup"] {
+                background-color: #f8f9fa; /* Lighter background for the group */
+                border-radius: 0.5rem;
+                padding: 0.75rem 1rem;
+                border: 1px solid #e9ecef;
+                display: flex; /* Ensure flex layout for horizontal */
+                gap: 1rem; /* Space between radio options */
+                flex-wrap: wrap; /* Allow wrapping if too many options */
+            }
+            div[data-testid="stRadio"] label > div { /* Individual radio option container */
+                background-color: #fff;
+                border: 1px solid #ced4da;
+                border-radius: 0.5rem;
+                padding: 0.5rem 0.8rem;
+                transition: all 0.2s ease-in-out;
+                cursor: pointer;
+            }
+            div[data-testid="stRadio"] label:has(input:checked) > div { /* Style for checked radio option */
+                background-color: #e0e7ff; /* Light blue when checked */
+                border-color: #6366f1; /* Indigo border when checked */
+                color: #6366f1; /* Indigo text when checked */
+                font-weight: 600;
+            }
+            div[data-testid="stRadio"] label > div:hover {
+                background-color: #f0f4ff; /* Light blue on hover */
+            }
+            div[data-testid="stRadio"] .st-ag { /* Hide the native radio button dot */
+                display: none;
+            }
+
+
             /* Selectbox styles - Clean */
             .stSelectbox > div > div > div {
                 background-color: #fff;
@@ -275,9 +312,13 @@ def configure_gemini_api():
     Mengkonfigurasi API Gemini menggunakan kunci API.
     Dalam aplikasi produksi, gunakan st.secrets.
     """
-    api_key = "AIzaSyC0VUu6xTFIwH3aP2R7tbhyu4O8m1ICxn4" # Ganti dengan st.secrets["GEMINI_API_KEY"] di produksi
+    # Ganti dengan st.secrets["GEMINI_API_KEY"] di produksi
+    # Untuk contoh ini, saya akan menggunakan placeholder API Key yang tidak valid
+    # Anda HARUS menggantinya dengan API Key Gemini Anda yang sebenarnya dari Google AI Studio
+    api_key = st.secrets.get("GEMINI_API_KEY") # Menggunakan st.secrets lebih aman
+
     if not api_key:
-        st.warning("API Key Gemini tidak ditemukan. Beberapa fitur AI mungkin tidak berfungsi.")
+        st.warning("API Key Gemini tidak ditemukan. Beberapa fitur AI mungkin tidak berfungsi. Silakan atur di Streamlit Secrets.")
         return False
     try:
         genai.configure(api_key=api_key)
@@ -388,12 +429,9 @@ def parse_csv(uploaded_file):
     """Membaca dan membersihkan file CSV."""
     try:
         df = pd.read_csv(uploaded_file)
-        # Debugging: Tampilkan head DataFrame setelah dibaca
-        # st.write("DEBUG: DataFrame setelah dibaca:", df.head()) 
-
+        
         if 'Media_Type' in df.columns:
             df.rename(columns={'Media_Type': 'Media Type'}, inplace=True)
-        # st.write("DEBUG: DataFrame setelah rename Media_Type:", df.head())
 
         # Konversi kolom 'Date' dan 'Engagements' dengan penanganan error
         df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
@@ -404,7 +442,6 @@ def parse_csv(uploaded_file):
         df.dropna(subset=['Date', 'Engagements'], inplace=True)
         if len(df) < initial_rows:
             st.warning(f"Menghapus {initial_rows - len(df)} baris karena nilai 'Date' atau 'Engagements' tidak valid.")
-        # st.write("DEBUG: DataFrame setelah dropna Date/Engagements:", df.head())
 
         # Pastikan Engagements adalah integer
         df['Engagements'] = df['Engagements'].astype(int)
@@ -415,7 +452,6 @@ def parse_csv(uploaded_file):
                 df[col] = 'N/A'
                 st.warning(f"Kolom '{col}' tidak ditemukan, mengisi dengan 'N/A'.")
         df[['Platform', 'Sentiment', 'Media Type', 'Location', 'Headline']] = df[['Platform', 'Sentiment', 'Media Type', 'Location', 'Headline']].fillna('N/A')
-        # st.write("DEBUG: DataFrame final sebelum return:", df.head())
         
         if df.empty:
             st.error("File CSV Anda tidak mengandung data yang valid setelah pembersihan. Pastikan format kolom 'Date' dan 'Engagements' benar.")
@@ -430,8 +466,6 @@ def parse_csv(uploaded_file):
 # --- UI STREAMLIT ---
 load_css() # Memuat CSS kustom
 api_configured = configure_gemini_api() # Mengkonfigurasi API Gemini
-
-st.markdown("<div class='main-header'><h1>Media Intelligence Dashboard</h1><p>Rooby Farhan Intelligence</p></div>", unsafe_allow_html=True)
 
 # Inisialisasi State (PASTIKAN BAGIAN INI ADA DI ATAS SEBELUM KODE UI LAINNYA)
 if 'data' not in st.session_state:
@@ -452,6 +486,9 @@ if 'last_filter_state' not in st.session_state: # Untuk menyimpan status filter 
     st.session_state.last_filter_state = {}
 if 'filter_date_range' not in st.session_state: # Inisialisasi untuk date_input
     st.session_state.filter_date_range = None
+
+
+st.markdown("<div class='main-header'><h1>Media Intelligence Dashboard</h1><p>Rooby Farhan Intelligence</p></div>", unsafe_allow_html=True)
 
 
 # Tampilan Unggah File Awal
@@ -484,7 +521,6 @@ if st.session_state.data is None:
                         st.session_state.last_uploaded_file_name = None
                         st.session_state.last_uploaded_file_size = None
                         st.session_state.show_analysis = False
-                        # st.stop() # Hentikan eksekusi sementara agar tidak ada error lanjutan
                 else:
                     # Jika file yang diunggah sama, mungkin user klik ulang.
                     # Asumsikan data sudah di session_state dan lanjutkan ke analisis.
@@ -642,6 +678,9 @@ if st.session_state.show_analysis and st.session_state.data is not None:
                     try:
                         if filtered_df.empty: # Tambahkan pengecekan jika filtered_df kosong
                             st.warning(f"Tidak ada data untuk ditampilkan pada grafik '{chart['title']}' dengan filter ini.")
+                            # Jika tidak ada data, kosongkan insight sebelumnya
+                            st.session_state.chart_insights.get(chart.get("key"), {}).clear()
+                            st.markdown(f'<div class="insight-box">Tidak ada data untuk dianalisis.</div>', unsafe_allow_html=True)
                             continue # Lanjutkan ke grafik berikutnya
 
                         if chart["key"] == "sentiment":
@@ -682,10 +721,12 @@ if st.session_state.show_analysis and st.session_state.data is not None:
                             st.warning(f"Tidak ada data untuk ditampilkan pada grafik '{chart['title']}' dengan filter ini.")
 
                         answer_styles = ["gemini-2.0-flash", "Mistral 7B Instruct", "llama-3.3-8b-instruct"]
-                        selected_style = st.selectbox(
+                        # Mengubah st.selectbox menjadi st.radio
+                        selected_style = st.radio(
                             "Pilih Model AI:",
                             answer_styles,
-                            key=f"sel_{chart['key']}"
+                            key=f"sel_{chart['key']}",
+                            horizontal=True # Menampilkan opsi secara horizontal
                         )
 
                         if st.button("Lihat Insight", key=f"btn_{chart['key']}", use_container_width=True, type="primary"):
