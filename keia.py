@@ -311,7 +311,7 @@ def configure_gemini_api():
     """
     Mengkonfigurasi API Gemini menggunakan kunci API dari st.secrets.
     """
-    api_key = st.secrets.get("GEMINI_API_KEY") # Membaca dari secrets.toml
+    api_key = st.secrets.get("AIzaSyC0VUu6xTFIwH3aP2R7tbhyu4O8m1ICxn4") # Membaca dari secrets.toml
 
     if not api_key:
         st.warning("API Key Gemini tidak ditemukan. Beberapa fitur AI mungkin tidak berfungsi. Silakan atur di Streamlit Secrets.")
