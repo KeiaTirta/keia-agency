@@ -132,9 +132,8 @@ def generate_html_report(campaign_summary, chart_insights, chart_figures_dict, c
     """
     return html_content.encode('utf-8')
 
-# PERUBAHAN FONT & UI HANYA DI DALAM FUNGSI INI
 def load_css():
-    """Menyuntikkan CSS kustom dengan skema warna hijau dan putih."""
+    """Menyuntikkan CSS kustom dengan skema warna biru dan gaya modern."""
     st.markdown("""
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Inter:wght@400;500;600;700&display=swap');
@@ -142,8 +141,8 @@ def load_css():
             /* UI Simplicity: Main background colors */
             body { background-color: #FFFFFF !important; } 
             .stApp { 
-                background-color: #F8F8F8; /* Light grey background */
-                color: #333333; /* Darker text for readability */
+                background-color: #F0F2F5; /* Light blue-grey background */
+                color: #2D3748; /* Darker text for readability */
                 font-family: 'Inter', sans-serif; 
             }
             
@@ -153,45 +152,48 @@ def load_css():
                 margin-bottom: 2rem; 
             }
             .main-header h1 { 
-                /* MODIFIKASI: Green gradient for main title */
-                background: -webkit-linear-gradient(45deg, #4CAF50, #8BC34A); /* Green shades */
+                /* MODIFIKASI: Blue gradient for main title */
+                background: -webkit-linear-gradient(45deg, #2196F3, #03A9F4); /* Blue shades */
                 -webkit-background-clip: text; 
                 -webkit-text-fill-color: transparent; 
-                font-size: 2.75rem; 
+                font-size: 3rem; /* Slightly larger for impact */
                 font-weight: 800; 
+                letter-spacing: -1.5px; /* Tighter letter spacing */
             }
             .main-header p { 
-                color: #666666; /* Darker grey for subtitle */
-                font-size: 1.1rem; 
+                color: #64748B; /* Soft grey for subtitle */
+                font-size: 1.15rem; 
+                margin-top: -0.5rem;
             }
             
-            /* UI Simplicity: Card styles - White background, green border/shadow */
+            /* UI Simplicity: Card styles - White background, blue border/shadow */
             .chart-container, .anomaly-card, .uploaded-file-info, .st-emotion-cache-1r6dm7m {
-                border: 1px solid #8BC34A; /* Green border */
+                border: 1px solid #90CAF9; /* Light blue border */
                 background-color: #FFFFFF; /* White background */
                 border-radius: 1rem; 
                 padding: 1.5rem; 
                 margin-bottom: 2rem; 
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Lighter shadow */
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); /* More subtle shadow */
                 box-sizing: border-box; 
             }
             .anomaly-card { 
-                border: 2px solid #4CAF50; /* More prominent green border */
-                background-color: #E8F5E9; /* Very light green background */
+                border: 2px solid #2196F3; /* More prominent blue border */
+                background-color: #E3F2FD; /* Very light blue background */
             }
             
             /* UI Simplicity: Insight box styles */
             .insight-box { 
-                background-color: #F1F8E9; /* Light green-yellow */
-                border: 1px solid #8BC34A; /* Green border */
-                border-radius: 0.5rem; 
-                padding: 1rem; 
-                margin-top: 1rem; 
+                background-color: #EBF5FE; /* Light blue background */
+                border: 1px solid #BBDEFB; /* Slightly darker blue border */
+                border-radius: 0.75rem; /* Softer corners */
+                padding: 1.25rem; 
+                margin-top: 1.25rem; 
                 min-height: 150px; 
                 white-space: pre-wrap; 
                 word-wrap: break-word; 
-                font-size: 0.9rem; 
-                color: #333333; /* Dark text for readability */
+                font-size: 0.95rem; 
+                color: #2D3748; /* Dark text for readability */
+                line-height: 1.7; /* Better readability */
             }
             /* Container untuk insight lanjutan agar sejajar */
             .insight-hub-container {
@@ -205,11 +207,11 @@ def load_css():
                 flex: 1; 
                 min-width: 300px; 
                 max-width: 450px; 
-                border: 1px solid #8BC34A;
+                border: 1px solid #90CAF9;
                 background-color: #FFFFFF;
                 border-radius: 1rem;
                 padding: 1.5rem;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
                 box-sizing: border-box;
                 display: flex; 
                 flex-direction: column; 
@@ -224,142 +226,154 @@ def load_css():
 
             /* UI Simplicity: Heading colors within containers */
             .chart-container h3, .insight-hub-item h3, .anomaly-card h3, .uploaded-file-info h3 { 
-                color: #4CAF50; /* Vibrant green for headings */
+                color: #1976D2; /* Deeper blue for headings */
                 margin-top: 0; 
                 margin-bottom: 1rem; 
                 display: flex; 
                 align-items: center; 
                 gap: 0.5rem; 
-                font-weight: 600; 
+                font-weight: 700; /* Bolder headings */
             }
             .insight-hub-item h4 {
-                color: #4CAF50; /* Warna untuk sub-judul di insight lanjutan */
+                color: #1976D2; /* Warna untuk sub-judul di insight lanjutan */
                 margin-top: 0;
             }
-            .uploaded-file-info { color: #333333; } 
+            .uploaded-file-info { color: #2D3748; } 
             .uploaded-file-info p { margin-bottom: 0.5rem; }
 
             /* Streamlit specific overrides for better UI Simplicity */
             .stFileUploader > div {
-                border: 2px dashed #8BC34A; /* Green dashed border */
+                border: 2px dashed #90CAF9; /* Blue dashed border */
                 border-radius: 1rem;
-                padding: 2rem;
+                padding: 2.5rem; /* Larger padding for upload area */
                 background-color: #FFFFFF; /* White background */
-                margin-top: 1rem;
+                margin-top: 1.5rem;
             }
-            .stFileUploader label { color: #4CAF50; font-size: 1.1rem; font-weight: 600; } /* Green label */
+            .stFileUploader label { color: #1976D2; font-size: 1.2rem; font-weight: 700; } /* Blue label, bolder */
             
             /* Button styles */
             .stButton > button {
-                border-radius: 0.5rem;
-                padding: 0.75rem 1rem;
+                border-radius: 0.75rem; /* More rounded buttons */
+                padding: 0.85rem 1.25rem;
                 font-weight: bold;
                 border: none; 
-                transition: opacity 0.2s ease-in-out;
+                transition: all 0.3s ease; /* Smoother transitions */
+                cursor: pointer;
             }
             .stButton > button:hover {
-                opacity: 0.9; 
+                transform: translateY(-2px); /* Slight lift on hover */
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             }
-            /* Semua tombol primer (default) menjadi hijau */
+            /* Semua tombol primer (default) menjadi biru */
             .stButton > button[data-testid="stFormSubmitButton"], 
             .stButton > button[kind="primary"] {
-                background-color: #4CAF50 !important; /* Green, menggunakan !important */
-                color: white !important; /* Putih, menggunakan !important */
-                border: none !important; /* Tanpa border, menggunakan !important */
+                background-color: #2196F3 !important; /* Blue, using !important */
+                color: white !important; /* Putih, using !important */
+                border: none !important; /* Tanpa border, using !important */
             }
             /* Hover untuk tombol primer */
             .stButton > button[data-testid="stFormSubmitButton"]:hover,
             .stButton > button[kind="primary"]:hover {
-                background-color: #45a049 !important; /* Darker green on hover */
+                background-color: #1976D2 !important; /* Darker blue on hover */
             }
 
-            /* MODIFIKASI: Tombol unduh laporan menjadi hijau dengan teks putih */
+            /* MODIFIKASI: Tombol unduh laporan menjadi biru dengan teks putih */
             .stButton > button[data-testid="stDownloadButton"] {
-                background-color: #4CAF50 !important; 
+                background-color: #2196F3 !important; 
                 color: white !important; /* Pastikan teksnya putih */
                 border: none !important;
             }
             .stButton > button[data-testid="stDownloadButton"]:hover {
-                background-color: #45a049 !important; 
+                background-color: #1976D2 !important; 
             }
 
-            /* Tombol sekunder menjadi hijau dengan latar belakang putih */
+            /* Tombol sekunder menjadi biru dengan latar belakang putih */
             .stButton > button[kind="secondary"] {
                 background-color: #FFFFFF !important;
-                color: #4CAF50 !important; /* Green text */
-                border: 1px solid #4CAF50 !important; /* Green border */
+                color: #2196F3 !important; /* Blue text */
+                border: 1px solid #2196F3 !important; /* Blue border */
             }
             .stButton > button[kind="secondary"]:hover {
-                background-color: #F0F8F0 !important; /* Very light green on hover */
-                border: 1px solid #4CAF50 !important;
-                color: #4CAF50 !important;
+                background-color: #F0F8FF !important; /* Very light blue on hover */
+                border: 1px solid #2196F3 !important;
+                color: #2196F3 !important;
             }
 
             /* Selectbox styles */
             .stSelectbox > div > div > div {
                 background-color: #FFFFFF; 
-                color: #333333; 
-                border: 1px solid #8BC34A; /* Green border */
-                border-radius: 0.5rem;
+                color: #2D3748; 
+                border: 1px solid #BBDEFB; /* Light blue border */
+                border-radius: 0.75rem; /* Softer corners */
             }
-            .stSelectbox > label { color: #4CAF50; font-weight: 600; } /* Green label */
+            .stSelectbox > label { color: #1976D2; font-weight: 600; } /* Blue label */
             
             /* Expander styles */
             .stExpander > div > div {
                 background-color: #FFFFFF; 
-                border: 1px solid #8BC34A; /* Green border */
+                border: 1px solid #BBDEFB; /* Light blue border */
                 border-radius: 1rem;
                 padding: 1.5rem;
                 margin-bottom: 2rem;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); /* Subtle shadow */
             }
             .stExpander > div > div > div > p {
-                color: #4CAF50; /* Green for expander header */
-                font-weight: 600;
-                font-size: 1.1rem;
+                color: #1976D2; /* Blue for expander header */
+                font-weight: 700;
+                font-size: 1.15rem;
             }
             .stExpander div[data-testid="stExpanderForm"] {
-                padding-top: 0.5rem;
+                padding-top: 0.75rem;
             }
             
             /* Text input and chat input styles */
             .st-emotion-cache-10o5h6q { 
                 background-color: #FFFFFF; 
-                border: 1px solid #8BC34A; /* Green border */
-                border-radius: 0.5rem;
-                color: #333333; 
+                border: 1px solid #BBDEFB; /* Light blue border */
+                border-radius: 0.75rem;
+                color: #2D3748; 
             }
-            .st-emotion-cache-10o5h6q input {
-                color: #333333;
+            .st-emotion-cache-10o5h6q input, 
+            .st-emotion-cache-10o5h6q textarea { /* Menambahkan textarea untuk st.text_area */
+                color: #2D3748;
             }
             .st-emotion-cache-10o5h6q label {
-                color: #4CAF50;
+                color: #1976D2;
                 font-weight: 600;
             }
 
             /* Plotly chart font color adjustment for the white background */
             .js-plotly-plot .plotly .modebar-container {
-                color: #333333; 
+                color: #2D3748; 
             }
             /* Menyesuaikan warna font pada grafik */
             .js-plotly-plot .plotly .g-gtitle { 
-                fill: #333333 !important;
+                fill: #2D3748 !important;
             }
             .js-plotly-plot .plotly .xtick text,
             .js-plotly-plot .plotly .ytick text { 
-                fill: #333333 !important;
+                fill: #2D3748 !important;
             }
             .js-plotly-plot .plotly .xaxislayer-above .axis-title text,
             .js-plotly-plot .plotly .yaxislayer-above .axis-title text { 
-                fill: #333333 !important;
+                fill: #2D3748 !important;
             }
             .js-plotly-plot .plotly .legend .bg { 
                 fill: rgba(255,255,255,0.8) !important; 
             }
             .js-plotly-plot .plotly .legendtext { 
-                fill: #333333 !important;
+                fill: #2D3748 !important;
             }
             .js-plotly-plot .plotly .annotation-text { 
-                fill: #333333 !important;
+                fill: #2D3748 !important;
+            }
+
+            /* Streamlit specific adjustments for better fit with the new theme */
+            div.stTabs [data-testid="stTabContent"] {
+                padding: 1.5rem 0; /* Adjust padding inside tabs */
+            }
+            .stProgress > div > div > div > div {
+                background-color: #2196F3; /* Blue progress bar */
             }
 
         </style>
@@ -428,7 +442,7 @@ if st.session_state.data is not None:
     # Tampilkan sidebar hanya jika analisis telah dimulai
     if st.session_state.show_analysis:
         with st.sidebar:
-            st.markdown(f"""<div class="uploaded-file-info"><h3>📂 File Kamu Berhasil Teruploadf! ✅️</h3><p><strong>Nama File:</strong> {st.session_state.last_uploaded_file_name}</p></div>""", unsafe_allow_html=True)
+            st.markdown(f"""<div class="uploaded-file-info"><h3>📂 File Kamu Berhasil Terupload! ✅️</h3><p><strong>Nama File:</strong> {st.session_state.last_uploaded_file_name}</p></div>""", unsafe_allow_html=True)
             if st.button("Hapus File Kamu", key="clear_file_btn", use_container_width=True, type="secondary"):
                 for key in list(st.session_state.keys()): del st.session_state[key]
                 st.experimental_set_query_params() 
@@ -506,11 +520,11 @@ if st.session_state.data is not None:
                         fig.update_layout(
                             paper_bgcolor='#FFFFFF', # White background for charts on orange/white theme
                             plot_bgcolor='#FFFFFF',  # White plot area
-                            font_color='#333333',   # Dark font for readability
+                            font_color='#2D3748',   # Dark font for readability, adjusted for blue theme
                             legend_title_text='',
-                            xaxis=dict(tickfont=dict(color='#333333'), title_font=dict(color='#333333'), showgrid=False),
-                            yaxis=dict(tickfont=dict(color='#333333'), title_font=dict(color='#333333'), showgrid=False),
-                            title_font=dict(color='#333333')
+                            xaxis=dict(tickfont=dict(color='#2D3748'), title_font=dict(color='#2D3748'), showgrid=False),
+                            yaxis=dict(tickfont=dict(color='#2D3748'), title_font=dict(color='#2D3748'), showgrid=False),
+                            title_font=dict(color='#2D3748')
                         )
                         st.plotly_chart(fig, use_container_width=True)
                     else: st.warning("Tidak ada data untuk ditampilkan dengan filter ini.")
