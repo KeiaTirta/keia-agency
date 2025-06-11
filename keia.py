@@ -499,7 +499,7 @@ if st.session_state.show_analysis and st.session_state.data is not None:
 
     # --- Sidebar Filter ---
     with st.sidebar:
-        st.markdown(f"""<div class="uploaded-file-info"><h3>📂 File Terunggah:</h3><p><strong>Nama:</strong> {st.session_state.last_uploaded_file_name}</p></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="uploaded-file-info"><h3>Info File:</h3><p><strong>Nama:</strong> {st.session_state.last_uploaded_file_name}</p></div>""", unsafe_allow_html=True)
         if st.button("Unggah File Baru", key="clear_file_btn", use_container_width=True, type="secondary"):
             for key in list(st.session_state.keys()):
                 # Hati-hati jangan menghapus API key jika disimpan di session_state
@@ -509,7 +509,7 @@ if st.session_state.show_analysis and st.session_state.data is not None:
             st.rerun()
 
         st.markdown("---")
-        with st.expander("⚙️ Filter Data", expanded=True):
+        with st.expander("⚙️ Filter ", expanded=True):
             def get_multiselect(label, options):
                 all_option = f"Pilih Semua {label}"
                 # Set default value from session_state if exists, otherwise to "Pilih Semua"
@@ -637,7 +637,7 @@ if st.session_state.show_analysis and st.session_state.data is not None:
         for i, chart in enumerate(charts_to_display):
             with chart_cols[(i) % 2]: # distribusi по двум колонкам
                 with st.container(border=True):
-                    st.markdown(f'<h3>📊 {chart["title"]}</h3>', unsafe_allow_html=True)
+                    st.markdown(f'<h3>⚡ {chart["title"]}</h3>', unsafe_allow_html=True)
                     fig, data_for_prompt = None, None
                     try:
                         if filtered_df.empty: # Tambahkan pengecekan jika filtered_df kosong
