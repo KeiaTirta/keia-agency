@@ -536,10 +536,10 @@ if st.session_state.show_analysis and st.session_state.data is not None:
 
             # Use st.session_state.filter_date_range as default value for date_input
             date_range = st.date_input("Rentang Tanggal", 
-                                       value=st.session_state.filter_date_range, 
-                                       min_value=min_date, 
-                                       max_value=max_date, 
-                                       format="DD/MM/YYYY")
+                                      value=st.session_state.filter_date_range, 
+                                      min_value=min_date, 
+                                      max_value=max_date, 
+                                      format="DD/MM/YYYY")
             
             # Update session state for date range
             if len(date_range) == 2:
@@ -594,7 +594,7 @@ if st.session_state.show_analysis and st.session_state.data is not None:
         with cols_stats[1]:
             st.markdown(f"<div class='chart-container' style='padding: 1.5rem; text-align: center;'><h3>Sentimen Positif</h3><p style='font-size: 2rem; font-weight: bold; color: #28a745;'>{positive_sentiment_count}</p></div>", unsafe_allow_html=True)
         with cols_stats[2]:
-            st.markdown(f"<div class='chart-container' style='padding: 1.5rem; text-align: center;'><h3>Sentimen Negatif</h3><p style='font-size: 2rem; font-weight: bold; color: #800080;'>{negative_sentiment_count}</p></div>", unsafe_allow_html=True) # Changed to purple
+            st.markdown(f"<div class='chart-container' style='padding: 1.5rem; text-align: center;'><h3>Sentimen Negatif</h3><p style='font-size: 2rem; font-weight: bold; color: #dc3545;'>{negative_sentiment_count}</p></div>", unsafe_allow_html=True)
         with cols_stats[3]:
             st.markdown(f"<div class='chart-container' style='padding: 1.5rem; text-align: center;'><h3>Platform Unik</h3><p style='font-size: 2rem; font-weight: bold; color: #ffc107;'>{total_unique_platforms}</p></div>", unsafe_allow_html=True)
 
@@ -647,152 +647,96 @@ if st.session_state.show_analysis and st.session_state.data is not None:
                         if chart["key"] == "sentiment":
                             data = filtered_df['Sentiment'].value_counts().reset_index()
                             data.columns = ['Sentiment', 'count']
-                            fig = px.pie(data, names='Sentiment', values='count', title='Distribusi Sentimen', color_discrete_map={'Negative':'purple', 'Positive':'green', 'Neutral':'orange'}) # Changed to purple
+                            fig = px.pie(data, names='Sentiment', values='count', title='Distribusi Sentimen')
                         elif chart["key"] == "trend":
                             data = filtered_df.groupby(filtered_df['Date'].dt.date)['Engagements'].sum().reset_index()
                             data.columns = ['Date', 'Engagements']
-                            fig = px.line(data, x='Date', y='Engagements', title='Tren Keterlibatan Seiring Waktu', color_discrete_sequence=['#6366f1'])
+                            fig = px.line(data, x='Date', y='Engagements', title='Tren Keterlibatan Seiring Waktu')
                         elif chart["key"] == "platform":
                             data = filtered_df.groupby('Platform')['Engagements'].sum().nlargest(10).reset_index()
                             data.columns = ['Platform', 'Engagements']
-                            fig = px.bar(data, x='Platform', y='Engagements', color='Platform', title='Keterlibatan per Platform (Top 10)', color_discrete_sequence=px.colors.qualitative.Pastel)
+                            fig = px.bar(data, x='Platform', y='Engagements', color='Platform', title='Keterlibatan per Platform (Top 10)')
                         elif chart["key"] == "mediaType":
                             data = filtered_df['Media Type'].value_counts().reset_index()
                             data.columns = ['Media Type', 'count']
-                            fig = px.pie(data, names='Media Type', values='count', hole=.3, title='Distribusi Jenis Media', color_discrete_sequence=px.colors.qualitative.Set2)
+                            fig = px.pie(data, names='Media Type', values='count', hole=.3, title='Distribusi Jenis Media')
                         elif chart["key"] == "location":
                             data = filtered_df.groupby('Location')['Engagements'].sum().nlargest(5).reset_index()
                             data.columns = ['Location', 'Engagements']
-                            fig = px.bar(data, y='Location', x='Engagements', orientation='h', title='5 Lokasi Teratas Berdasarkan Keterlibatan', color_discrete_sequence=['#800080']) # Changed to purple
+                            fig = px.bar(data, y='Location', x='Engagements', orientation='h', title='5 Lokasi Teratas berdasarkan Keterlibatan')
 
                         if fig:
-                            st.plotly_chart(fig, use_container_width=True)
-                            st.session_state.chart_figures[chart["key"]] = fig # Simpan figur
-
-                            # Mengambil wawasan AI untuk grafik
-                            st.subheader("Wawasan AI")
-                            styles = {
-                                "Kritis": "gemini-2.0-flash",
-                                "Kreatif": "Mistral 7B Instruct",
-                                "Kuantitatif": "llama-3.3-8b-instruct"
-                            }
-                            selected_style = st.selectbox(
-                                f"Pilih gaya wawasan untuk {chart['title']}:",
-                                options=list(styles.keys()),
-                                key=f"style_{chart['key']}"
+                            st.session_state.chart_figures.setdefault(chart["key"], fig)
+                            fig.update_layout(
+                                paper_bgcolor='#FFFFFF',
+                                plot_bgcolor='#FFFFFF',
+                                font_color='#2D3748',
+                                legend_title_text='',
+                                xaxis=dict(tickfont=dict(color='#2D3748'), title_font=dict(color='#2D3748'), showgrid=False),
+                                yaxis=dict(tickfont=dict(color='#2D3748'), title_font=dict(color='#2D3748'), showgrid=False),
+                                title_font=dict(color='#2D3748')
                             )
+                            st.plotly_chart(fig, use_container_width=True)
+                            data_for_prompt = data.to_json(orient='records')
+                        else:
+                            st.warning(f"Tidak ada data untuk ditampilkan pada grafik '{chart['title']}' dengan filter ini.")
 
-                            if st.button(f"Dapatkan Wawasan untuk {chart['title']}", key=f"get_insight_btn_{chart['key']}"):
-                                if api_configured:
-                                    with st.spinner(f"Membuat wawasan {selected_style} untuk {chart['title']}..."):
-                                        prompt_data = data.to_json(orient='records')
-                                        insight = get_ai_insight(get_chart_prompt(chart["key"], prompt_data, styles[selected_style]), styles[selected_style])
-                                        st.session_state.chart_insights.setdefault(chart["key"], {})[selected_style] = insight
-                                else:
-                                    st.error("API Gemini tidak terkonfigurasi. Harap periksa kunci API Anda.")
+                        answer_styles = ["gemini-2.0-flash", "Mistral 7B Instruct", "llama-3.3-8b-instruct"]
+                        selected_style = st.selectbox(
+                            "Pilih Model AI:",
+                            answer_styles,
+                            key=f"sel_{chart['key']}"
+                        )
 
-                            if chart["key"] in st.session_state.chart_insights and selected_style in st.session_state.chart_insights[chart["key"]]:
-                                st.markdown(f"""
-                                    <div class="insight-box">
-                                        <h4>Gaya Wawasan: {selected_style}</h4>
-                                        <p>{st.session_state.chart_insights[chart["key"]][selected_style]}</p>
-                                    </div>
-                                """, unsafe_allow_html=True)
+                        if st.button("Lihat Insight", key=f"btn_{chart['key']}", use_container_width=True, type="primary"):
+                            if data_for_prompt and api_configured:
+                                with st.spinner(f"Menganalisis {chart['title']} dengan gaya '{selected_style}'..."):
+                                    prompt = get_chart_prompt(chart['key'], data_for_prompt, selected_style)
+                                    st.session_state.chart_insights.setdefault(chart['key'], {})
+                                    st.session_state.chart_insights.get(chart['key'])[selected_style] = get_ai_insight(prompt)
+                                    st.rerun()
+                            elif not api_configured:
+                                st.error("API Gemini tidak terkonfigurasi. Tidak dapat membuat wawasan AI.")
+                            else:
+                                st.warning("Tidak ada data valid untuk membuat insight AI.")
+
+                        insight_text = st.session_state.chart_insights.get(chart.get("key"), {}).get(selected_style, "Pilih model AI untuk melihat insight.")
+                        st.markdown(f'<div class="insight-box">{insight_text}</div>', unsafe_allow_html=True)
 
                     except Exception as e:
-                        st.error(f"Gagal membuat atau menampilkan grafik {chart['title']}: {e}")
-                        st.write("Pastikan kolom yang diperlukan (misalnya 'Date', 'Engagements', 'Sentiment', 'Platform', 'Media Type', 'Location') ada di file CSV Anda dan formatnya benar.")
+                        st.error(f"Terjadi kesalahan saat membuat atau menampilkan grafik '{chart['title']}': {e}")
 
-        st.markdown("---")
+    else:
+        st.info("Tidak ada data yang sesuai dengan filter yang Anda terapkan. Silakan ubah filter atau unggah file baru.")
 
-        # --- Analisis Anomali (Opsional, Lanjutan) ---
-        st.header("Deteksi Anomali")
-        st.write("Identifikasi titik data yang tidak biasa atau 'anomali' dalam tren keterlibatan.")
-        
-        with st.container(border=True):
-            st.markdown("<h3>⚠️ Anomali Keterlibatan</h3>", unsafe_allow_html=True)
-            col_anomaly_date, col_anomaly_threshold = st.columns(2)
-            
-            # Mendapatkan data untuk anomali
-            df_trend_anomaly = filtered_df.groupby(filtered_df['Date'].dt.date)['Engagements'].sum().reset_index()
-            df_trend_anomaly.columns = ['Date', 'Engagements']
-            
-            if not df_trend_anomaly.empty and len(df_trend_anomaly) > 1:
-                df_trend_anomaly['Date'] = pd.to_datetime(df_trend_anomaly['Date'])
-                df_trend_anomaly = df_trend_anomaly.sort_values('Date').set_index('Date')
-                
-                with col_anomaly_threshold:
-                    # Ambil standar deviasi dari data keterlibatan
-                    std_dev_engagements = df_trend_anomaly['Engagements'].std()
-                    # Atur nilai default threshold ke 2 * standar deviasi
-                    default_threshold_value = 2 * std_dev_engagements if std_dev_engagements > 0 else df_trend_anomaly['Engagements'].mean() * 0.5 # fallback
-                    
-                    # Pastikan threshold minimal adalah 1 untuk menghindari error pembagian atau filter
-                    anomaly_threshold = st.slider(
-                        "Ambang Anomali (Deviasi Standar)", 
-                        min_value=0.5, 
-                        max_value=5.0, 
-                        value=max(1.0, round(default_threshold_value / std_dev_engagements, 1)) if std_dev_engagements > 0 else 1.5,
-                        step=0.1
-                    )
-                
-                # Hitung Z-score untuk mendeteksi anomali
-                df_trend_anomaly['Z_Score'] = stats.zscore(df_trend_anomaly['Engagements'])
-                anomalies = df_trend_anomaly[abs(df_trend_anomaly['Z_Score']) > anomaly_threshold]
+    st.markdown("<hr style='margin-top: 3rem;'>", unsafe_allow_html=True)
 
-                if not anomalies.empty:
-                    st.markdown("<p style='color: purple; font-weight: bold;'>Ditemukan Anomali:</p>", unsafe_allow_html=True) # Changed to purple
-                    for idx, row in anomalies.iterrows():
-                        st.markdown(f"""
-                            <div class="anomaly-card">
-                                <strong>Tanggal:</strong> {idx.strftime('%d %B %Y')}<br>
-                                <strong>Keterlibatan:</strong> {row['Engagements']:,}<br>
-                                <strong>Z-Score:</strong> {row['Z_Score']:.2f} (Di luar ambang {anomaly_threshold:.1f})
-                            </div>
-                        """, unsafe_allow_html=True)
-                else:
-                    st.info("Tidak ada anomali yang signifikan terdeteksi dalam rentang ini.")
+    # --- Bagian Ringkasan Strategi ---
+    st.header("Ringkasan Strategi & Rekomendasi AI")
+    st.write("Dapatkan rangkuman eksekutif dan rekomendasi strategis berbasis AI untuk kampanye media Anda.")
+    with st.container(border=True):
+        if st.button("Buat Ringkasan Strategi", use_container_width=True, type="primary", key="btn_summary"):
+            if not filtered_df.empty and api_configured:
+                with st.spinner("Membuat ringkasan..."):
+                    st.session_state.campaign_summary = get_ai_insight(f"Data: {filtered_df.describe().to_json()}. Buat ringkasan eksekutif yang menarik dan berikan 3 rekomendasi strategis yang bisa ditindaklanjuti berdasarkan data ini.")
+            elif not api_configured:
+                st.error("API Gemini tidak terkonfigurasi. Tidak dapat membuat ringkasan AI.")
             else:
-                st.info("Tidak cukup data tren keterlibatan untuk mendeteksi anomali.")
+                st.warning("Tidak ada data valid untuk membuat ringkasan AI.")
+        st.markdown(f'<div class="insight-box">{st.session_state.campaign_summary or "Klik \'Buat Ringkasan Strategi\' untuk mendapatkan wawasan berbasis AI."}</div>', unsafe_allow_html=True)
 
-        st.markdown("---")
-        
-        # --- Ringkasan Kampanye & Laporan AI ---
-        st.header("Laporan & Wawasan AI")
-        st.write("Dapatkan ringkasan keseluruhan tentang kinerja kampanye Anda dan hasilkan laporan lengkap.")
+    st.markdown("<hr style='margin-top: 3rem;'>", unsafe_allow_html=True)
 
-        if st.button("Buat Ringkasan Strategi Kampanye", key="generate_summary_btn", use_container_width=True, type="primary"):
-            if api_configured:
-                with st.spinner("Membuat ringkasan kampanye..."):
-                    campaign_data_sample = filtered_df.head(10).to_json(orient='records')
-                    summary_prompt = f"""Sebagai seorang ahli strategi kampanye, analisis data media berikut: {campaign_data_sample}. Identifikasi tren utama, sentimen keseluruhan, platform yang paling menonjol, dan media type yang dominan. Berikan ringkasan yang komprehensif dan actionable yang dapat digunakan untuk strategi kampanye di masa depan. Sertakan rekomendasi untuk mengoptimalkan kinerja. Fokus pada 3-5 poin utama."""
-                    summary = get_ai_insight(summary_prompt, 'gemini-2.0-flash') # Menggunakan model default
-                    st.session_state.campaign_summary = summary
-            else:
-                st.error("API Gemini tidak terkonfigurasi. Harap periksa kunci API Anda.")
-
-        if st.session_state.campaign_summary:
-            st.markdown(f"""
-                <div class="insight-box">
-                    <h3>Ringkasan Strategi Kampanye (AI Generated)</h3>
-                    <p>{st.session_state.campaign_summary}</p>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # Tombol unduh laporan HTML
-            html_report = generate_html_report(
-                st.session_state.campaign_summary, 
-                st.session_state.chart_insights, 
-                st.session_state.chart_figures,
-                charts_to_display
-            )
-            st.download_button(
-                label="Unduh Laporan HTML",
-                data=html_report,
-                file_name="media_intelligence_report.html",
-                mime="text/html",
-                use_container_width=True
-            )
-
-    else: # Jika filtered_df kosong setelah filter
-        st.info("Unggah file CSV dan sesuaikan filter untuk melihat analisis.")
+    # --- Tombol Download Laporan ---
+    st.header("Unduh Laporan Analisis")
+    st.write("Unduh laporan lengkap yang berisi grafik dan wawasan AI untuk dokumentasi atau presentasi Anda.")
+    with st.container(border=True):
+        if st.download_button(
+            "Unduh Laporan Lengkap (HTML)",
+            data=generate_html_report(st.session_state.campaign_summary, st.session_state.chart_insights, st.session_state.chart_figures, charts_to_display),
+            file_name="Laporan_Media_Intelligence.html",
+            mime="text/html",
+            use_container_width=True,
+            type="primary" # Menggunakan primary agar lebih menonjol
+        ):
+            st.success("Laporan berhasil dibuat dan siap diunduh!")
