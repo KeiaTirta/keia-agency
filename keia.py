@@ -309,12 +309,14 @@ def load_css():
 
 def configure_gemini_api():
     """
-    Mengkonfigurasi API Gemini menggunakan kunci API dari st.secrets.
+    Mengkonfigurasi API Gemini menggunakan kunci API yang langsung ada di kode.
+    CATATAN: Ini hanya untuk tujuan pengujian. Untuk produksi, gunakan st.secrets.
     """
-    api_key = st.secrets.get("AIzaSyC0VUu6xTFIwH3aP2R7tbhyu4O8m1ICxn4") # Membaca dari secrets.toml
+    # GANTI DENGAN API KEY GEMINI ASLI ANDA DI SINI
+    api_key = "AIzaSyC0VUu6xTFIwH3aP2R7tbhyu4O8m1ICxn4"
 
-    if not api_key:
-        st.warning("API Key Gemini tidak ditemukan. Beberapa fitur AI mungkin tidak berfungsi. Silakan atur di Streamlit Secrets.")
+    if not api_key or api_key == "AIzaSyC0VUu6xTFIwH3aP2R7tbhyu4O8m1ICxn4":
+        st.warning("API Key Gemini belum diatur atau masih menggunakan placeholder. Beberapa fitur AI mungkin tidak berfungsi.")
         return False
     try:
         genai.configure(api_key=api_key)
